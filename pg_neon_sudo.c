@@ -29,6 +29,7 @@
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
 #include "parser/parse_func.h"
+#include "replication/message.h"
 #include "storage/fd.h"
 #include "tcop/utility.h"
 #include "utils/acl.h"
@@ -169,6 +170,13 @@ Datum anon_start_dynamic_masking(PG_FUNCTION_ARGS) {
   ereport(ERROR,
           (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
            errmsg("This version of PostgreSQL is not supported")));
+  {
+	char prefix[MAXPGPATH];
+	char buf[1] = { 233 };
+	snprintf(prefix, sizeof(prefix), "neon-file:%s", "pg_anon_enabled");
+	XLogFlush(LogLogicalMessage(prefix, buf, 1, false));
+  }
+
   PG_RETURN_TEXT_P(cstring_to_text("operation unsuccessful"));
   #endif
 }
