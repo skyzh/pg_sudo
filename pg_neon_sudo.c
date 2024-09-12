@@ -33,7 +33,6 @@
 #include "tcop/utility.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
-#include "utils/conffiles.h"
 #include "utils/fmgroids.h"
 #include "utils/fmgrtab.h"
 #include "utils/lsyscache.h"
@@ -51,6 +50,8 @@ PG_FUNCTION_INFO_V1(anon_start_dynamic_masking);
 PGDLLEXPORT Datum anon_stop_dynamic_masking(PG_FUNCTION_ARGS);
 PG_FUNCTION_INFO_V1(anon_stop_dynamic_masking);
 
+
+#if PG_VERSION_NUM >= 160000
 static void
 execute_sql_string(const char *sql)
 {
@@ -151,26 +152,12 @@ execute_sql_string(const char *sql)
 	/* Be sure to advance the command counter after the last script command */
 	CommandCounterIncrement();
 }
+#endif
 
 Datum anon_start_dynamic_masking(PG_FUNCTION_ARGS) {
+  #if PG_VERSION_NUM >= 160000
   Oid			save_userid = 0;
 	int			save_sec_context = 0;
-  // Node	   *escontext = fcinfo->context;
-  // Datum result;
-  // List *funcname;
-  // Oid funcoid;
-  // funcname = stringToQualifiedNameList("start_dynamic_masking", escontext);
-  // if (funcname == NULL) {
-  //   ereport(ERROR,
-  //           (errcode(ERRCODE_UNDEFINED_FUNCTION),
-  //            errmsg("cannot parse function")));
-  // }
-  // funcoid = LookupFuncName(funcname, 0, NULL, false);
-  // if (!OidIsValid(funcoid)) {
-  //   ereport(ERROR,
-  //           (errcode(ERRCODE_UNDEFINED_FUNCTION),
-  //            errmsg("cannot find function")));
-  // }
   GetUserIdAndSecContext(&save_userid, &save_sec_context);
   SetUserIdAndSecContext(BOOTSTRAP_SUPERUSERID,
                 save_sec_context | SECURITY_LOCAL_USERID_CHANGE);
@@ -178,10 +165,17 @@ Datum anon_start_dynamic_masking(PG_FUNCTION_ARGS) {
   execute_sql_string("SELECT anon.start_dynamic_masking()");
   SetUserIdAndSecContext(save_userid, save_sec_context);
   PG_RETURN_TEXT_P(cstring_to_text("operation successful"));
+    #else
+  ereport(ERROR,
+          (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+           errmsg("This version of PostgreSQL is not supported")));
+  PG_RETURN_TEXT_P(cstring_to_text("operation unsuccessful"));
+  #endif
 }
 
 
 Datum anon_stop_dynamic_masking(PG_FUNCTION_ARGS) {
+  #if PG_VERSION_NUM >= 160000
   Oid			save_userid = 0;
 	int			save_sec_context = 0;
   GetUserIdAndSecContext(&save_userid, &save_sec_context);
@@ -190,4 +184,10 @@ Datum anon_stop_dynamic_masking(PG_FUNCTION_ARGS) {
   execute_sql_string("SELECT anon.stop_dynamic_masking()");
   SetUserIdAndSecContext(save_userid, save_sec_context);
   PG_RETURN_TEXT_P(cstring_to_text("operation successful"));
+  #else
+  ereport(ERROR,
+          (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+           errmsg("This version of PostgreSQL is not supported")));
+  PG_RETURN_TEXT_P(cstring_to_text("operation unsuccessful"));
+  #endif
 }
