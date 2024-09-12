@@ -1,0 +1,6 @@
+comment = 'pg_neon_sudo'
+default_version = '0.0.1'
+module_pathname = '$libdir/pg_neon_sudo'
+relocatable = false
+superuser = true
+trusted = true
